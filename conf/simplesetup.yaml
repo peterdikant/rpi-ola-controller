@@ -1,0 +1,103 @@
+# Complete Lighting Setup
+#
+# frame_duration, fade and hold times in ms
+# Order can be linear or random
+#
+# Address Overview: (1 - 4) LED Fixture
+# LED Fixture: dimmer, r, g, b
+
+name: Demo Lighting Setup
+universe: 1
+frame_duration: 40
+start_scene: 1
+scenes:
+- name: Blackout
+  # KEY_TAB
+  trigger_keys: [11, 15]
+  repeat: no
+  order: linear
+  steps:
+  - fade: 0
+    hold: 0
+    values: [0, 0, 0, 0]
+- name: White
+  # KEY_KPSLASH
+  trigger_keys: [2, 98]
+  repeat: no
+  order: linear
+  steps:
+  - fade: 0
+    hold: 0
+    values: [255, 255, 255, 50]
+- name: Fade Red
+  # KEY_KP1
+  trigger_keys: [3, 79]
+  repeat: no
+  order: linear
+  steps:
+  - fade: 2000
+    hold: 0
+    values: [255, 255, 0, 0]
+- name: Fade Green
+  # KEY_KP2
+  trigger_keys: [4, 80]
+  repeat: no
+  order: linear
+  steps:
+  - fade: 2000
+    hold: 0
+    values: [255, 0, 255, 0]
+- name: Fade Blue
+  # KEY_KP3
+  trigger_keys: [5, 81]
+  repeat: no
+  order: linear
+  steps:
+  - fade: 2000
+    hold: 0
+    values: [255, 0, 0, 255]
+- name: Color Switch
+  # KEY_KP9
+  trigger_keys: [6, 73]
+  repeat: yes
+  order: random
+  steps:
+  - fade: 2000
+    hold: 2000
+    values: [255, 0, 0, 255]
+  - fade: 2000
+    hold: 2000
+    values: [255, 0, 255, 0]
+  - fade: 2000
+    hold: 2000
+    values: [255, 255, 0, 0]
+  - fade: 2000
+    hold: 2000
+    values: [255, 0, 255, 255]
+  - fade: 2000
+    hold: 2000
+    values: [255, 255, 0, 255]
+  - fade: 2000
+    hold: 2000
+    values: [255, 255, 255, 0]
+  - fade: 2000
+    hold: 2000
+    values: [255, 255, 255, 255]
+- name: White Ending
+  # KEY_KPENTER
+  trigger_keys: [7, 96]
+  repeat: no
+  order: linear
+  steps:
+  - fade: 0
+    hold: 300
+    values: [255, 255, 255, 255]
+  - fade: 500
+    hold: 2000
+    values: [0, 255, 255, 255]
+  - fade: 0
+    hold: 0
+    values: [0, 255, 100, 0]
+  - fade: 1000
+    hold: 0
+    values: [180, 255, 100, 0]
