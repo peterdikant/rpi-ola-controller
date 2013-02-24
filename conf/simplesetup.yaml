@@ -9,7 +9,8 @@
 name: Demo Lighting Setup
 universe: 1
 frame_duration: 40
-start_scene: 1
+# scene numbering starts with 1
+start_scene: 2
 scenes:
 - name: Blackout
   # KEY_TAB

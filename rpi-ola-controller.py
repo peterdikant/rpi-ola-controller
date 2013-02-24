@@ -1,19 +1,18 @@
 #!/usr/bin/env python
-#  This program is free software; you can redistribute it and/or modify
-#  it under the terms of the GNU General Public License as published by
-#  the Free Software Foundation; either version 2 of the License, or
-#  (at your option) any later version.
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
 #
-#  This program is distributed in the hope that it will be useful,
-#  but WITHOUT ANY WARRANTY; without even the implied warranty of
-#  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-#  GNU Library General Public License for more details.
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
 #
-#  You should have received a copy of the GNU General Public License
-#  along with this program; if not, write to the Free Software
-#  Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
-# simple_dmx_control.py
+# rpi_ola_controller.py
 # Copyright (C) 2013 Peter Dikant
 
 """ A simple dmx controller to play scenes triggered by key presses """
@@ -26,35 +25,31 @@ from optparse import OptionParser
 from evdev import InputDevice, list_devices, ecodes
 from ola.ClientWrapper import ClientWrapper
 
-TICK_INTERVAL = 40 # DMX clock set to 25 fps
-
 class Controller:
 	def __init__(self, config, inputdevice):
 		self.config = config
 		self.input_device = InputDevice(inputdevice)
 		self.wrapper = ClientWrapper()
-		self.switchScene(self.config["scenes"][1])
+		self.switchScene(self.config["scenes"][self.config["start_scene"] - 1])
 		self.current_frame = [0] * 512
 	
+	""" start dmx transmission """
 	def run(self):
-		self.wrapper.AddEvent(TICK_INTERVAL, self.nextFrame)
-
-		# send blackout to whole universe to start ola transmission
-		#data = array.array('B')
-		#for i in range(512):
-		#	data.append(0)
-		#self.wrapper.Client().SendDmx(1, data)
+		self.wrapper.AddEvent(self.config["frame_duration"], self.nextFrame)
 		self.wrapper.Run()
 	
+	""" calculate the dmx values for a new frame and send the frame """
 	def nextFrame(self):
-		self.wrapper.AddEvent(TICK_INTERVAL, self.nextFrame)
+		self.wrapper.AddEvent(self.config["frame_duration"], self.nextFrame)
 		self.handleKeypress()
 		
 		if self.fade_frames > 0:
+			# interpolate dmx values during a fade
 			for i in range(len(self.current_scene["steps"][self.next_step]["values"])):
 				self.current_frame[i] = int(round(self.current_frame[i] + float(self.current_scene["steps"][self.next_step]["values"][i] - self.current_frame[i]) / self.fade_frames))
 			self.fade_frames -= 1
 		else:
+			# no fade, just copy the dmx values from the scene
 			self.current_frame = list(self.current_scene["steps"][self.next_step]["values"])
 			if self.hold_frames > 0:
 				self.hold_frames -= 1
@@ -62,13 +57,15 @@ class Controller:
 				self.nextStep()
 		
 		data = array.array('B')
+		# OLA does not like handling partial universes, so we fill the whole universe
 		for i in range(512):
 			if i < len(self.current_frame):
 				data.append(self.current_frame[i])
 			else:
 				data.append(0)
-		self.wrapper.Client().SendDmx(1, data)
-		
+		self.wrapper.Client().SendDmx(self.config["universe"], data)
+	
+	""" check if user pressed a key and try to match keypress to a scene """	
 	def handleKeypress(self):
 		for event in self.input_device.read():
 			# only track key down events
@@ -85,12 +82,14 @@ class Controller:
 							action_triggered = True
 							break
 					if action_triggered == False:
-						print("Unmapped key code: {0}".format(event.code))		
-			
+						print("Unmapped key code: %d" % event.code)		
+	
+	""" activate a new scene """
 	def switchScene(self, targetScene):
 		self.current_scene = targetScene
 		self.nextStep(True)
-		
+	
+	""" progress to the next step in a scene """	
 	def nextStep(self, newScene = False):
 		if newScene == True:
 			self.next_step = 0
@@ -107,12 +106,9 @@ class Controller:
 					self.next_step = 0
 				else:
 					return
-		self.switchStep()
-				
-	def switchStep(self):
-		self.hold_frames = int(round(self.current_scene["steps"][self.next_step]["hold"] / TICK_INTERVAL)) + 1
-		self.fade_frames = int(round(self.current_scene["steps"][self.next_step]["fade"] / TICK_INTERVAL))
-		print('Playing scene: %-40s Step: %02d/%02d' % (self.current_scene["name"], self.next_step + 1, len(self.current_scene["steps"])))
+		self.hold_frames = int(round(self.current_scene["steps"][self.next_step]["hold"] / self.config["frame_duration"])) + 1
+		self.fade_frames = int(round(self.current_scene["steps"][self.next_step]["fade"] / self.config["frame_duration"]))
+		print('Playing scene: %-30s Step: %02d/%02d' % (self.current_scene["name"], self.next_step + 1, len(self.current_scene["steps"])))
 
 def main(stdscr):
 	if options.configfile:
