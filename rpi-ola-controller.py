@@ -28,10 +28,11 @@ from ola.ClientWrapper import ClientWrapper
 class Controller:
 	def __init__(self, config, inputdevice):
 		self.config = config
+		self.current_frame = [0] * 512
 		self.input_device = InputDevice(inputdevice)
 		self.wrapper = ClientWrapper()
-		self.switchScene(self.config["scenes"][self.config["start_scene"] - 1])
-		self.current_frame = [0] * 512
+		self.current_scene = self.config["scenes"][self.config["start_scene"] - 1]
+		self.nextStep(True)
 	
 	""" start dmx transmission """
 	def run(self):
@@ -50,19 +51,14 @@ class Controller:
 			self.fade_frames -= 1
 		else:
 			# no fade, just copy the dmx values from the scene
-			self.current_frame = list(self.current_scene["steps"][self.next_step]["values"])
+			for i in range(len(self.current_scene["steps"][self.next_step]["values"])):
+				self.current_frame[i] = self.current_scene["steps"][self.next_step]["values"][i]
 			if self.hold_frames > 0:
 				self.hold_frames -= 1
 			else:
 				self.nextStep()
 		
-		data = array.array('B')
-		# OLA does not like handling partial universes, so we fill the whole universe
-		for i in range(512):
-			if i < len(self.current_frame):
-				data.append(self.current_frame[i])
-			else:
-				data.append(0)
+		data = array.array('B', self.current_frame)
 		self.wrapper.Client().SendDmx(self.config["universe"], data)
 	
 	""" check if user pressed a key and try to match keypress to a scene """	
@@ -78,16 +74,12 @@ class Controller:
 					action_triggered = False
 					for scene in self.config["scenes"]:
 						if event.code in scene["trigger_keys"]:
-							self.switchScene(scene)
+							self.current_scene = scene
+							self.nextStep(True)
 							action_triggered = True
 							break
 					if action_triggered == False:
-						print("Unmapped key code: %d" % event.code)		
-	
-	""" activate a new scene """
-	def switchScene(self, targetScene):
-		self.current_scene = targetScene
-		self.nextStep(True)
+						print("Unmapped key code: %d" % event.code)
 	
 	""" progress to the next step in a scene """	
 	def nextStep(self, newScene = False):
@@ -109,16 +101,6 @@ class Controller:
 		self.hold_frames = int(round(self.current_scene["steps"][self.next_step]["hold"] / self.config["frame_duration"])) + 1
 		self.fade_frames = int(round(self.current_scene["steps"][self.next_step]["fade"] / self.config["frame_duration"]))
 		print('Playing scene: %-30s Step: %02d/%02d' % (self.current_scene["name"], self.next_step + 1, len(self.current_scene["steps"])))
-
-def main(stdscr):
-	if options.configfile:
-		f = open(options.configfile, 'r')
-		config = yaml.safe_load(f)
-		f.close
-		controller = Controller(config)
-		controller.run()
-	else:
-		parser.print_help()
 		
 def print_input_devices():
 	devices = map(InputDevice, list_devices())
