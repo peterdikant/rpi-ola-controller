@@ -66,3 +66,8 @@ Each step has the following settings:
 * `hold` will hold the current scene values for the specified time in milliseconds. The hold time starts after the fade time. So if you have a fade time of 500 and a hold time of 1500, the current step will take 2 seconds.
 
 * `values` this represents the DMX values in the current step. The first value is the one at DMX address 1. You need to define the DMX values for all your lighting fixtures in this list.
+
+Performance
+-----------
+
+The Raspberry Pi does not have a very fast CPU. Keep this in mind when using this script. If you experience short blackouts, try to lower the frame rate. The more fixtures you have the more computing time is needed. With 40 fps the Raspberry Pi can handle around 100 dmx addresses. With 25 fps you can use around 200 addresses.
