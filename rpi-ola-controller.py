@@ -24,6 +24,7 @@ import datetime
 from random import randint
 from optparse import OptionParser
 from evdev import InputDevice, list_devices, ecodes
+from select import select
 from ola.ClientWrapper import ClientWrapper
 
 class Controller:
@@ -70,6 +71,7 @@ class Controller:
 	
 	""" check if user pressed a key and try to match keypress to a scene """	
 	def handleKeypress(self):
+		select([self.input_device], [], []) # wait until we can read
 		for event in self.input_device.read():
 			# only track key down events
 			if event.type == ecodes.EV_KEY and event.value == 1:
