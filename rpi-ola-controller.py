@@ -71,7 +71,9 @@ class Controller:
 	
 	""" check if user pressed a key and try to match keypress to a scene """	
 	def handleKeypress(self):
-		select([self.input_device], [], []) # wait until we can read
+		a, b, c = select([self.input_device], [], [], 0) # wait until we can read
+		if not a:
+			return
 		for event in self.input_device.read():
 			# only track key down events
 			if event.type == ecodes.EV_KEY and event.value == 1:
